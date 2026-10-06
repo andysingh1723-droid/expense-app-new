@@ -1,6 +1,4 @@
-import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:enough_mail/enough_mail.dart' as mail;
@@ -22,29 +20,24 @@ const incCats = ['Salary', 'Cashback', 'Refund', 'Other income'];
 List<String> catsFor(String k) => k == 'income' ? incCats : k == 'expense' ? expCats : const ['Transfer'];
 String sm(double v) => '${v < 0 ? '-' : ''}${money(v.abs())}';
 
-final _catRes = <MapEntry<String, RegExp>>[
-  MapEntry('Food', RegExp(r'swiggy|zomato|restaurant|cafe|hotel|dominos|pizza|food|bakery|tea|juice')),
-  MapEntry('Grocery', RegExp(r'grocer|kirana|mart|store|general|vegetable|milk|dairy|bigbasket|blinkit|zepto')),
-  MapEntry('Travel', RegExp(r'uber|ola|irctc|fuel|petrol|diesel|metro|bus|railway|travel|redbus|rapido')),
-  MapEntry('Shopping', RegExp(r'amazon|flipkart|myntra|meesho|ajio|shop|fashion|mall')),
-  MapEntry('Bills', RegExp(r'jio|airtel|vodafone|electric|bill|recharge|broadband|gas|water|dth|insurance')),
-  MapEntry('EMI', RegExp(r'finance|loan|emi|slice|bajaj|credit|kreditbee|navi')),
-  MapEntry('Medical', RegExp(r'pharma|hospital|medical|clinic|doctor|medic|lab|health')),
-];
-
 String guessCat(String p, bool debit) {
   final l = p.toLowerCase();
   if (!debit) {
     return l.contains('salary') ? 'Salary' : l.contains('refund') ? 'Refund' : l.contains('cashback') ? 'Cashback' : 'Other income';
   }
-  for (final e in _catRes) {
-    if (e.value.hasMatch(l)) return e.key;
-  }
+  if (RegExp(r'swiggy|zomato|restaurant|cafe|hotel|dominos|pizza|food|bakery|tea|juice').hasMatch(l)) return 'Food';
+  if (RegExp(r'grocer|kirana|mart|store|general|vegetable|milk|dairy|bigbasket|blinkit|zepto').hasMatch(l)) return 'Grocery';
+  if (RegExp(r'uber|ola|irctc|fuel|petrol|diesel|metro|bus|railway|travel|redbus|rapido').hasMatch(l)) return 'Travel';
+  if (RegExp(r'amazon|flipkart|myntra|meesho|ajio|shop|fashion|mall').hasMatch(l)) return 'Shopping';
+  if (RegExp(r'jio|airtel|vodafone|electric|bill|recharge|broadband|gas|water|dth|insurance').hasMatch(l)) return 'Bills';
+  if (RegExp(r'finance|loan|emi|slice|bajaj|credit|kreditbee|navi').hasMatch(l)) return 'EMI';
+  if (RegExp(r'pharma|hospital|medical|clinic|doctor|medic|lab|health').hasMatch(l)) return 'Medical';
   return 'Other';
 }
 
 class Tx {
-  final String id, acc, bank, method, party, ref;
+  final String id, acc, method, party, ref;
+  String bank;
   final DateTime d;
   final double amt;
   final bool debit, manual;
@@ -62,7 +55,7 @@ class Tx {
 }
 
 final _skip = RegExp(
-    r'otp|declined|failed|unsuccessful|insufficient|will be debited|scheduled|autopay|mandate|pre-?approved|loan offer|payment due|bill due|request',
+    r'\botp\b|declined|failed|unsuccessful|insufficient|will be debited|scheduled|autopay|mandate|pre-?approved|loan offer|payment due|bill due|request',
     caseSensitive: false);
 const _banks = {
   'kotak': 'Kotak Bank', 'hdfc': 'HDFC Bank', 'sbi': 'SBI', 'icici': 'ICICI Bank', 'axis': 'Axis Bank',
@@ -71,37 +64,21 @@ const _banks = {
   'federal': 'Federal Bank'
 };
 
-final _amtRe = RegExp(r'(?:rs\.?|inr|\u20B9)\s*([\d,]+(?:\.\d+)?)', caseSensitive: false);
-final _dmRe = RegExp(r'\b(?:debited|spent|paid|sent|withdrawn|purchase|transferred|debit)\b');
-final _cmRe = RegExp(r'\b(?:credited|received|deposited|refund|salary)\b');
-final _acc1Re = RegExp(r'(?:a/c|acct|account|card)\s*(?:no\.?|number|ending|ending with)?\s*[:\-]?\s*[xX*]*\s*(\d{4})\b',
-    caseSensitive: false);
-final _acc2Re = RegExp(r'[xX*]{2,}(\d{4})');
-final _refRe = RegExp(r'(?:upi\s*ref(?:erence)?|ref(?:erence)?\s*(?:no|number)?|utr|rrn)\s*[:.\-]?\s*(\d{6,})',
-    caseSensitive: false);
-final _pmDebRe = RegExp(
-    r'(?:\bto\b|\bat\b|vpa)\s+([A-Za-z0-9@._\- ]{3,35}?)(?=\s+(?:on|ref|upi|via|dated|avl|bal|utr|if)\b|[.,;(]|$)',
-    caseSensitive: false);
-final _pmCreRe = RegExp(
-    r'(?:\bfrom\b|\bby\b|vpa)\s+([A-Za-z0-9@._\- ]{3,35}?)(?=\s+(?:on|ref|upi|via|dated|avl|bal|utr|if)\b|[.,;(]|$)',
-    caseSensitive: false);
-final _balRe = RegExp(
-    r'(?:avl\.?\s*bal(?:ance)?|available\s*bal(?:ance)?|bal(?:ance)?)\s*(?:is|:)?\s*(?:rs\.?|inr|\u20B9)\s*([\d,]+(?:\.\d+)?)',
-    caseSensitive: false);
-final _badNameRe = RegExp(r'^(?:rs\.?|inr|\u20B9)\s*\d|^(?:your bank|beneficiary)', caseSensitive: false);
-
 Tx? parse(String b, int ms, String sender) {
   if (b.isEmpty || _skip.hasMatch(b)) return null;
   final low = b.toLowerCase();
-  final a = _amtRe.firstMatch(b);
+  final a = RegExp(r'(?:rs\.?|inr|\u20B9)\s*([\d,]+(?:\.\d+)?)', caseSensitive: false).firstMatch(b);
   if (a == null) return null;
   final amt = double.tryParse(a.group(1)!.replaceAll(',', ''));
   if (amt == null || amt <= 0) return null;
-  final dm = _dmRe.firstMatch(low);
-  final cm = _cmRe.firstMatch(low);
+  final dm = RegExp(r'\b(?:debited|spent|paid|sent|withdrawn|purchase|transferred|debit)\b').firstMatch(low);
+  final cm = RegExp(r'\b(?:credited|received|deposited|refund|salary)\b').firstMatch(low);
   if (dm == null && cm == null) return null;
   final debit = dm != null && (cm == null || dm.start < cm.start);
-  final am = _acc1Re.firstMatch(b) ?? _acc2Re.firstMatch(b);
+  final am = RegExp(r'(?:a/c|acct|account|card)\s*(?:no\.?|number|ending|ending with)?\s*[:\-]?\s*[xX*]*\s*(\d{4})\b',
+              caseSensitive: false)
+          .firstMatch(b) ??
+      RegExp(r'[xX*]{2,}(\d{4})').firstMatch(b);
   final acc = am != null ? 'XX${am.group(1)}' : 'Unknown';
   var bank = 'Unknown';
   final hay = '$low ${sender.toLowerCase()}';
@@ -124,27 +101,27 @@ Tx? parse(String b, int ms, String sender) {
                       : low.contains('card')
                           ? 'Card'
                           : 'Other';
-  final ref = _refRe.firstMatch(b)?.group(1) ?? '';
-  final pm = (debit ? _pmDebRe : _pmCreRe).firstMatch(b);
+  final rm = RegExp(r'(?:upi\s*ref(?:erence)?|ref(?:erence)?\s*(?:no|number)?|utr|rrn)\s*[:.\-]?\s*(\d{6,})',
+          caseSensitive: false)
+      .firstMatch(b);
+  final ref = rm?.group(1) ?? '';
+  final pm = RegExp(
+          debit
+              ? r'(?:\bto\b|\bat\b|vpa)\s+([A-Za-z0-9@._\- ]{3,35}?)(?=\s+(?:on|ref|upi|via|dated|avl|bal|utr|if)\b|[.,;(]|$)'
+              : r'(?:\bfrom\b|\bby\b|vpa)\s+([A-Za-z0-9@._\- ]{3,35}?)(?=\s+(?:on|ref|upi|via|dated|avl|bal|utr|if)\b|[.,;(]|$)',
+          caseSensitive: false)
+      .firstMatch(b);
   final party = (pm?.group(1) ?? '-').trim();
   final id = ref.isNotEmpty ? 'r${ref}_${debit ? 'd' : 'c'}' : '${ms}_${amt}_${debit}_$acc';
-  final bm = _balRe.firstMatch(b);
+  final bm = RegExp(r'(?:avl\.?\s*bal(?:ance)?|available\s*bal(?:ance)?|bal(?:ance)?)\s*(?:is|:)?\s*(?:rs\.?|inr|\u20B9)\s*([\d,]+(?:\.\d+)?)',
+          caseSensitive: false)
+      .firstMatch(b);
   final p = party.isEmpty ? '-' : party;
   final kind = debit ? (method == 'ATM' ? 'transfer' : 'expense') : 'income';
   return Tx(id, DateTime.fromMillisecondsSinceEpoch(ms), amt, debit, acc, bank, method, p, ref,
       kind: kind,
       cat: kind == 'transfer' ? 'Transfer' : guessCat(p, debit),
       bal: bm == null ? null : double.tryParse(bm.group(1)!.replaceAll(',', '')));
-}
-
-// Background isolate me chalega (UI freeze nahi hoga)
-List<Tx> parseAll(List<List<Object>> raw) {
-  final out = <Tx>[];
-  for (final r in raw) {
-    final x = parse(r[0] as String, r[1] as int, r[2] as String);
-    if (x != null) out.add(x);
-  }
-  return out;
 }
 
 String two(int n) => n.toString().padLeft(2, '0');
@@ -186,19 +163,13 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   Set<String> hidden = {};
   Map<String, Map<String, String>> meta = {};
   Map<String, double> cb = {};
+  Map<String, Map<String, String>> accs = {};
   String catF = 'all';
   DateTimeRange? cr;
   int? pieSel;
   bool listening = false;
   SharedPreferences? sp;
   final qc = TextEditingController();
-
-  bool refreshing = false;
-  Timer? _deb;
-  List<Tx>? _allC;
-  int _allK = 0;
-  List<Tx>? _dupFor;
-  int _dupOkLen = -1;
 
   @override
   void initState() {
@@ -209,20 +180,23 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
 
   @override
   void dispose() {
-    _deb?.cancel();
     WidgetsBinding.instance.removeObserver(this);
+    qc.dispose();
+    rev.dispose();
     super.dispose();
   }
 
   Future<void> boot() async {
     sp = await SharedPreferences.getInstance();
     budget = sp!.getDouble('budget') ?? 10000;
-    names = Map<String, String>.from(jsonDecode(sp!.getString('names') ?? '{}'));
-    alias = Map<String, String>.from(jsonDecode(sp!.getString('alias') ?? '{}'));
+    names = Map<String, String>.from(jd('names', '{}'));
+    alias = Map<String, String>.from(jd('alias', '{}'));
     hidden = (sp!.getStringList('hidden') ?? <String>[]).toSet();
-    meta = (jsonDecode(sp!.getString('meta') ?? '{}') as Map)
+    meta = (jd('meta', '{}') as Map)
         .map<String, Map<String, String>>((k, v) => MapEntry(k.toString(), Map<String, String>.from(v as Map)));
-    cb = (jsonDecode(sp!.getString('cb') ?? '{}') as Map).map<String, double>((k, v) => MapEntry(k.toString(), (v as num).toDouble()));
+    cb = (jd('cb', '{}') as Map).map<String, double>((k, v) => MapEntry(k.toString(), (v as num).toDouble()));
+    accs = (jd('accs', '{}') as Map)
+        .map<String, Map<String, String>>((k, v) => MapEntry(k.toString(), Map<String, String>.from(v as Map)));
     rec = ld('rec');
     loans = ld('loans');
     goals = ld('goals');
@@ -238,7 +212,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     } else {
       startD = DateTime.fromMillisecondsSinceEpoch(sv);
     }
-    manual = (jsonDecode(sp!.getString('manual') ?? '[]') as List)
+    manual = (jd('manual', '[]') as List)
         .map((e) => Tx.fromJson(Map<String, dynamic>.from(e)))
         .toList();
     await load();
@@ -248,21 +222,18 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   Future<void> load() async {
     final t = Telephony.instance;
     if (await t.requestSmsPermissions != true) {
-      if (mounted) setState(() => status = 'SMS permission nahi mili. Allow karke refresh dabao.');
+      if (mounted) setState(() => status = '');
+      snack('SMS permission nahi mili. Phone Settings me SMS allow karke refresh dabao.');
       return;
     }
     final inbox = await t.getInboxSms(
         columns: [SmsColumn.BODY, SmsColumn.DATE, SmsColumn.ADDRESS],
         sortOrder: [OrderBy(SmsColumn.DATE, sort: Sort.DESC)]);
-    final raw = <List<Object>>[
-      for (final m in inbox) [m.body ?? '', m.date ?? 0, m.address ?? '']
-    ];
-    // heavy parsing background me
-    final parsed = await compute(parseAll, raw);
     final list = <Tx>[];
     final ids = <String>{};
-    for (final x in parsed) {
-      if (ids.add(x.id)) {
+    for (final m in inbox) {
+      final x = parse(m.body ?? '', m.date ?? 0, m.address ?? '');
+      if (x != null && ids.add(x.id)) {
         applyMeta(x);
         list.add(x);
       }
@@ -278,18 +249,6 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     if (!listening) {
       listening = true;
       t.listenIncomingSms(onNewMessage: onSms, listenInBackground: false);
-    }
-  }
-
-  Future<void> refresh() async {
-    if (refreshing) return;
-    setState(() => refreshing = true);
-    try {
-      await load();
-      await syncEmail();
-      if (mounted) snack('Refresh ho gaya');
-    } finally {
-      if (mounted) setState(() => refreshing = false);
     }
   }
 
@@ -314,6 +273,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       t.kind = m['k'] ?? t.kind;
       t.cat = m['c'] ?? t.cat;
     }
+    final a = accs[t.acc];
+    if (a != null && (a['bank'] ?? '').isNotEmpty) t.bank = a['bank']!;
   }
 
   Map<String, double> balances() {
@@ -343,17 +304,22 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     final total = b.values.fold<double>(0, (a, v) => a + v);
     const bold = TextStyle(fontWeight: FontWeight.bold);
     return card(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('Accounts', style: bold),
+      Row(children: [
+        const Expanded(child: Text('Accounts', style: bold)),
+        TextButton(onPressed: accountsPage, child: const Text('Manage')),
+      ]),
       const SizedBox(height: 8),
       for (final e in b.entries)
-        Padding(
+        InkWell(
+            onTap: () => openAcc(e.key),
+            child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: Row(children: [
               Icon(e.key == 'Cash' ? Icons.payments_outlined : Icons.account_balance_outlined, size: 20),
               const SizedBox(width: 10),
               Expanded(child: Text(e.key)),
               Text(hideBal ? '\u2022\u2022\u2022\u2022' : sm(e.value), style: bold),
-            ])),
+            ]))),
       const Divider(),
       Row(children: [const Expanded(child: Text('Total', style: bold)), Text(hideBal ? '\u2022\u2022\u2022\u2022' : sm(total), style: bold)]),
       const SizedBox(height: 4),
@@ -469,12 +435,21 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   Set<String> dupOk = {}, dupSet = {};
   String? pin;
   bool hideBal = false, lockShown = false;
+  int dupKey = -1;
   final recF = const [['name', 'Naam (Rent, Netflix...)', 't'], ['amt', 'Amount', 'n'], ['day', 'Mahine ki tareekh (1-31)', 'n']];
   final loanF = const [['name', 'Loan naam', 't'], ['emi', 'EMI amount', 'n'], ['day', 'EMI tareekh (1-31)', 'n'], ['months', 'Total mahine', 'n'], ['paid', 'Ab tak kitne EMI bhare', 'n']];
   final goalF = const [['name', 'Goal naam', 't'], ['target', 'Target amount', 'n'], ['saved', 'Ab tak jama', 'n']];
 
+  dynamic jd(String k, String d) {
+    try {
+      return jsonDecode(sp!.getString(k) ?? d);
+    } catch (_) {
+      return jsonDecode(d);
+    }
+  }
+
   List<Map<String, dynamic>> ld(String k) =>
-      (jsonDecode(sp!.getString(k) ?? '[]') as List).map((e) => Map<String, dynamic>.from(e)).toList();
+      (jd(k, '[]') as List).map((e) => Map<String, dynamic>.from(e)).toList();
   double nv(Map m, String k) => double.tryParse('${m[k]}') ?? 0;
   String fs(dynamic v) => v is double && v == v.roundToDouble() ? v.toInt().toString() : '$v';
 
@@ -487,12 +462,11 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   }
 
   bool isDup(Tx t) {
-    final cur = all;
-    if (!identical(cur, _dupFor) || _dupOkLen != dupOk.length) {
-      _dupFor = cur;
-      _dupOkLen = dupOk.length;
+    final k = mails.length * 13 + sms.length * 100003 + manual.length * 101 + hidden.length * 7 + dupOk.length;
+    if (k != dupKey) {
+      dupKey = k;
       final g = <String, List<Tx>>{};
-      for (final x in cur) {
+      for (final x in all) {
         (g['${x.party.toLowerCase()}|${x.amt}|${x.acc}|${x.debit}'] ??= []).add(x);
       }
       dupSet = {};
@@ -765,6 +739,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       moreTile(Icons.repeat, 'Recurring Payments', '${rec.length} payments', () => openPage('Recurring Payments', recBody, () => editItem(rec, null, 'Recurring payment', recF))),
       moreTile(Icons.account_balance, 'EMI / Loans', 'Monthly EMI ${money(monthly)}', () => openPage('EMI / Loans', loanBody, () => editItem(loans, null, 'EMI / Loan', loanF))),
       moreTile(Icons.savings_outlined, 'Savings Goals', '${goals.length} goals', () => openPage('Savings Goals', goalBody, () => editItem(goals, null, 'Savings goal', goalF))),
+      moreTile(Icons.account_balance_outlined, 'My Accounts', '${accKeys().length} accounts \u2022 link & history', accountsPage),
       moreTile(Icons.insights_outlined, 'Tracking Report', 'SMS / Email / Manual ka summary', () => openPage('Tracking Report', trackBody, null)),
       moreTile(Icons.settings_outlined, 'Settings', 'App lock, backup, export', () => openPage('Settings', settingsBody, null)),
     ]);
@@ -778,7 +753,9 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     return h.toString();
   }
 
-  void snack(String s) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s)));
+  void snack(String s) {
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s)));
+  }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState s) {
@@ -839,7 +816,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   Future<void> backup() async {
     final j = {
       'v': 1, 'budget': budget, 'manual': manual.map((e) => e.toJson()).toList(), 'names': names, 'alias': alias,
-      'hidden': hidden.toList(), 'meta': meta, 'cb': cb, 'rec': rec, 'loans': loans, 'goals': goals, 'dupok': dupOk.toList()
+      'hidden': hidden.toList(), 'meta': meta, 'cb': cb, 'rec': rec, 'loans': loans, 'goals': goals, 'dupok': dupOk.toList(), 'accs': accs
     };
     await Clipboard.setData(ClipboardData(text: jsonEncode(j)));
     snack('Backup copy ho gaya. Ab Notes ya WhatsApp me paste karke save karo');
@@ -862,7 +839,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         rec = lm('rec');
         loans = lm('loans');
         goals = lm('goals');
+        accs = ((j['accs'] ?? {}) as Map)
+            .map<String, Map<String, String>>((k, v) => MapEntry(k.toString(), Map<String, String>.from(v as Map)));
       });
+      sp?.setString('accs', jsonEncode(accs));
       sp?.setDouble('budget', budget);
       sp?.setStringList('hidden', hidden.toList());
       sp?.setStringList('dupok', dupOk.toList());
@@ -959,6 +939,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   DateTime startD = DateTime(2000);
   bool emBusy = false;
   String emStatus = '';
+  bool busy = false;
+  DateTime emStart = DateTime(2000);
 
   bool near(Tx a, Tx b) =>
       a.amt == b.amt &&
@@ -1001,14 +983,16 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
 
   Future<void> syncEmail() async {
     final addr = sp?.getString('eAddr'), pass = sp?.getString('ePass');
-    if (addr == null || pass == null || emBusy) return;
+    if (addr == null || pass == null) return;
+    if (emBusy && DateTime.now().difference(emStart).inSeconds < 100) return;
     emBusy = true;
+    emStart = DateTime.now();
     final client = mail.ImapClient(isLogEnabled: false);
     try {
-      await client.connectToServer('imap.gmail.com', 993, isSecure: true);
-      await client.login(addr, pass);
+      await client.connectToServer('imap.gmail.com', 993, isSecure: true).timeout(const Duration(seconds: 25));
+      await client.login(addr, pass).timeout(const Duration(seconds: 25));
       await client.selectInbox();
-      final r = await client.fetchRecentMessages(messageCount: 150, criteria: 'BODY.PEEK[]');
+      final r = await client.fetchRecentMessages(messageCount: 100, criteria: 'BODY.PEEK[]').timeout(const Duration(seconds: 90));
       final out = <Tx>[];
       final ids = <String>{};
       for (final m in r.messages) {
@@ -1043,7 +1027,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       });
       rev.value++;
     } catch (e) {
-      if (mounted) snack('Email sync fail: $e');
+      snack('Email sync fail: $e');
     } finally {
       emBusy = false;
     }
@@ -1121,18 +1105,191 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     ];
   }
 
+  Future<void> doRefresh() async {
+    if (busy) return;
+    setState(() => busy = true);
+    snack('Refresh ho raha hai...');
+    try {
+      await load();
+      await syncEmail();
+    } catch (e) {
+      snack('Refresh me dikkat: $e');
+    }
+    if (!mounted) return;
+    setState(() => busy = false);
+    final a = all;
+    snack('Refresh ho gaya \u2022 SMS ${a.where((t) => !t.manual && t.src == 'sms').length} \u2022 Email ${a.where((t) => t.src == 'email').length}');
+  }
+
+  String bankOf(String acc) => all.where((t) => t.acc == acc).map((t) => t.bank).firstWhere((b) => b != 'Unknown', orElse: () => 'Unknown');
+
+  String accName(String acc) {
+    if (acc == 'Cash') return 'Cash';
+    final nick = accs[acc]?['nick'] ?? '';
+    final b = bankOf(acc);
+    final base = b == 'Unknown' ? acc : '$b $acc';
+    return nick.isNotEmpty ? '$nick ($base)' : base;
+  }
+
+  List<String> accKeys() =>
+      <String>{...accs.keys, for (final t in all) if (t.acc != 'Unknown' && t.acc != 'Cash') t.acc}.toList()..sort();
+
+  Future<void> saveAccs() async {
+    sp?.setString('accs', jsonEncode(accs));
+    await load();
+    for (final t in mails) {
+      applyMeta(t);
+    }
+    if (mounted) setState(() {});
+    rev.value++;
+  }
+
+  Future<void> linkDialog([String? acc]) async {
+    final a = acc == null ? null : accs[acc];
+    var bank = a?['bank'] ?? (acc == null ? '' : bankOf(acc));
+    if (bank == 'Unknown') bank = '';
+    final r = await ask(acc == null ? 'Link bank account' : 'Edit account',
+        [['bank', 'Bank name (e.g. HDFC Bank)', 't'], ['acc', 'Account last 4 digits', 'n'], ['nick', 'Nickname (optional)', 't']],
+        {'bank': bank, 'acc': acc == null ? '' : acc.replaceAll('XX', ''), 'nick': a?['nick'] ?? ''});
+    if (r == null) return;
+    final d = (r['acc'] ?? '').replaceAll(RegExp(r'\D'), '');
+    if ((r['bank'] ?? '').isEmpty || d.length != 4) {
+      snack('Bank name aur account ke last 4 digit zaroori hain');
+      return;
+    }
+    accs['XX$d'] = {'bank': r['bank']!, 'nick': r['nick'] ?? ''};
+    await saveAccs();
+    snack('Account link ho gaya');
+  }
+
+  void openAcc(String label) {
+    if (label == 'Cash') {
+      accountPage('Cash');
+    } else {
+      final m = RegExp(r'XX\d{4}').firstMatch(label);
+      if (m != null) accountPage(m.group(0)!);
+    }
+  }
+
+  void accountsPage() => openPage('My Accounts', accountsBody, () => linkDialog());
+
+  List<Widget> accountsBody() {
+    final keys = accKeys();
+    return [
+      Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Text('Account link karne par uske saare SMS/email transactions us bank ke naam se alag dikhte hain. Tap karke history dekho.', style: sub)),
+      if (keys.isEmpty) emptyNote('Abhi koi account nahi mila.\n+ Add dabake bank account link karo'),
+      for (final k in keys)
+        gap8(card(
+            onTap: () => accountPage(k),
+            Row(children: [
+              const CircleAvatar(child: Icon(Icons.account_balance)),
+              const SizedBox(width: 12),
+              Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(accName(k), style: const TextStyle(fontWeight: FontWeight.bold)),
+                Text('${accs.containsKey(k) ? 'Linked' : 'Auto-detected'} \u2022 ${all.where((t) => t.acc == k).length} transactions', style: sub),
+              ])),
+              PopupMenuButton<String>(
+                  onSelected: (v) {
+                    if (v == 'rm') {
+                      accs.remove(k);
+                      saveAccs();
+                    } else {
+                      linkDialog(k);
+                    }
+                  },
+                  itemBuilder: (_) => [
+                        PopupMenuItem(value: 'edit', child: Text(accs.containsKey(k) ? 'Edit' : 'Link bank')),
+                        if (accs.containsKey(k)) const PopupMenuItem(value: 'rm', child: Text('Remove link'))
+                      ]),
+            ]))),
+    ];
+  }
+
+  void accountPage(String acc) {
+    final qc2 = TextEditingController();
+    var f = 'all', q2 = '';
+    Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (_) => StatefulBuilder(
+                builder: (ctx, ss) => ValueListenableBuilder<int>(
+                    valueListenable: rev,
+                    builder: (c2, _, __) {
+                      final l = all.where((t) => t.acc == acc).toList()..sort((a, b) => b.d.compareTo(a.d));
+                      Tx? lb;
+                      for (final t in [...sms, ...mails]) {
+                        if (t.acc == acc && t.bal != null && !hidden.contains(t.id) && (lb == null || t.d.isAfter(lb.d))) lb = t;
+                      }
+                      final lbal = lb?.bal;
+                      final s = q2.trim().toLowerCase();
+                      final shown = l.where((t) {
+                        if (f == 'dr' && !t.debit) return false;
+                        if (f == 'cr' && t.debit) return false;
+                        if (s.isEmpty) return true;
+                        return '${nm(t)} ${t.party} ${t.amt} ${t.amt.round()} ${t.ref} ${t.cat} ${t.method}'.toLowerCase().contains(s);
+                      }).toList();
+                      final dr = l.where((t) => t.debit).fold<double>(0, (a, t) => a + t.amt);
+                      final crd = l.where((t) => !t.debit).fold<double>(0, (a, t) => a + t.amt);
+                      return Scaffold(
+                        appBar: AppBar(title: Text(accName(acc), overflow: TextOverflow.ellipsis), actions: [
+                          if (acc != 'Cash') IconButton(icon: const Icon(Icons.edit), onPressed: () => linkDialog(acc))
+                        ]),
+                        body: ListView.builder(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                            itemCount: shown.length + 1,
+                            itemBuilder: (_, i) {
+                              if (i == 0) {
+                                return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                  gap8(card(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                    Text('${bankOf(acc)}  \u2022  $acc', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                    const SizedBox(height: 10),
+                                    Row(children: [
+                                      Expanded(child: stat('Latest balance', lbal == null ? '-' : (hideBal ? '\u2022\u2022\u2022\u2022' : money(lbal)), cs.onSurface)),
+                                      Expanded(child: stat('Transactions', '${l.length}', cs.onSurface)),
+                                    ]),
+                                    const SizedBox(height: 10),
+                                    Row(children: [
+                                      Expanded(child: stat('Total debit', money(dr), rc)),
+                                      Expanded(child: stat('Total credit', money(crd), gc)),
+                                    ]),
+                                    const SizedBox(height: 10),
+                                    Text('Last transaction: ${l.isEmpty ? '-' : dt(l.first.d)}', style: sub),
+                                  ]))),
+                                  TextField(
+                                      controller: qc2,
+                                      onChanged: (v) => ss(() => q2 = v),
+                                      decoration: InputDecoration(
+                                          filled: true,
+                                          fillColor: cs.surfaceContainerHigh,
+                                          prefixIcon: const Icon(Icons.search),
+                                          hintText: 'Search in this account',
+                                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none))),
+                                  const SizedBox(height: 8),
+                                  chips(const {'all': 'All', 'dr': 'Debit', 'cr': 'Credit'}, f, (v) => ss(() => f = v)),
+                                  const SizedBox(height: 8),
+                                ]);
+                              }
+                              return txCard(shown[i - 1]);
+                            }),
+                      );
+                    }))));
+  }
+
+  List<Tx> _allC = [];
+  String _allK = '';
   List<Tx> get all {
-    final k = Object.hash(identityHashCode(sms), sms.length, identityHashCode(mails), mails.length,
-        identityHashCode(manual), manual.length, identityHashCode(hidden), hidden.length, startD);
-    if (_allC == null || k != _allK) {
+    final k =
+        '${identityHashCode(sms)}:${sms.length}:${identityHashCode(mails)}:${mails.length}:${identityHashCode(manual)}:${manual.length}:${identityHashCode(hidden)}:${hidden.length}:${startD.millisecondsSinceEpoch}';
+    if (k != _allK) {
       _allK = k;
       _allC = [...sms, ...mails, ...manual].where((t) => !hidden.contains(t.id) && !t.d.isBefore(startD)).toList();
     }
-    return _allC!;
+    return _allC;
   }
-
-  String nm(Tx t) =>
-      names[t.id] ?? alias[t.party.toLowerCase()] ?? (t.party == '-' || _badNameRe.hasMatch(t.party) ? 'Unknown recipient' : t.party);
+  String nm(Tx t) => names[t.id] ?? alias[t.party.toLowerCase()] ?? (t.party == '-' || RegExp(r'^(?:rs\.?|inr|\u20B9)\s*\d|^(?:your bank|beneficiary)', caseSensitive: false).hasMatch(t.party) ? 'Unknown recipient' : t.party);
 
   String dayLabel(DateTime d) {
     final n = DateTime.now();
@@ -1148,12 +1305,12 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         : range == '15'
             ? now.subtract(const Duration(days: 15))
             : range == '7'
-                ? now.subtract(const Duration(days: 7))
-                : range == '30'
-                    ? now.subtract(const Duration(days: 30))
-                    : range == 'm'
-                        ? DateTime(now.year, now.month)
-                        : null;
+        ? now.subtract(const Duration(days: 7))
+        : range == '30'
+            ? now.subtract(const Duration(days: 30))
+            : range == 'm'
+                ? DateTime(now.year, now.month)
+                : null;
     final s = q.trim().toLowerCase();
     final out = all.where((t) {
       if (type == 'exp' && t.kind != 'expense') return false;
@@ -1192,10 +1349,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           if (sub != null) Text(sub, style: TextStyle(color: cs.onSurfaceVariant)),
         ])),
         IconButton(
-            icon: refreshing
+            icon: busy
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                 : const Icon(Icons.refresh),
-            onPressed: refreshing ? null : refresh),
+            onPressed: doRefresh),
       ]));
 
   Widget stat(String label, String value, Color c) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -1290,7 +1447,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                 Text(nm(t), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 2),
                 Text('${dt(t.d)} \u2022 ${tm(t.d)}', style: sub),
-                Text('${t.bank} \u2022 ${t.method} \u2022 ${t.kind == 'transfer' ? 'Transfer' : t.cat}', style: sub),
+                Text('${t.bank} \u2022 ${t.method} \u2022 ${t.kind == 'transfer' ? 'Transfer' : t.cat} \u2022 ${t.manual ? 'Manual' : t.src == 'email' ? 'Email' : 'SMS'}', style: sub),
                 if (isDup(t)) const Text('\u26A0 Possible duplicate', style: TextStyle(fontSize: 12, color: Colors.amber)),
               ])),
               const SizedBox(width: 8),
@@ -1359,12 +1516,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     if (v == 'c') {
       final now = DateTime.now();
       final r = await showDateRangePicker(context: context, firstDate: DateTime(2015), lastDate: now);
-      if (r != null) {
-        setState(() {
-          cr = r;
-          range = 'c';
-        });
-      }
+      if (r != null) setState(() {
+        cr = r;
+        range = 'c';
+      });
     } else {
       setState(() => range = v);
     }
@@ -1404,12 +1559,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       head('Transactions'),
       TextField(
         controller: qc,
-        onChanged: (v) {
-          _deb?.cancel();
-          _deb = Timer(const Duration(milliseconds: 300), () {
-            if (mounted) setState(() => q = v);
-          });
-        },
+        onChanged: (v) => setState(() => q = v),
         decoration: InputDecoration(
             filled: true,
             fillColor: cs.surfaceContainerHigh,
@@ -1421,7 +1571,6 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                 : IconButton(
                     icon: const Icon(Icons.clear),
                     onPressed: () {
-                      _deb?.cancel();
                       qc.clear();
                       setState(() => q = '');
                     })),
