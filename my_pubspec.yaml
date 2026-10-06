@@ -1,0 +1,15 @@
+name: expense_tracker
+description: Personal SMS expense tracker
+publish_to: none
+version: 1.4.0+5
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+dependencies:
+  flutter:
+    sdk: flutter
+  another_telephony: ^0.4.1
+  fl_chart: ^0.69.0
+  shared_preferences: ^2.2.0
+  enough_mail: ^2.1.0
+flutter:
+  uses-material-design: true
