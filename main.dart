@@ -7,13 +7,21 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const rs = '\u20B9';
-const mon = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const _monEn = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const _monHi = ['\u091C\u0928', '\u092B\u093C\u0930', '\u092E\u093E\u0930\u094D\u091A', '\u0905\u092A\u094D\u0930\u0948', '\u092E\u0908', '\u091C\u0942\u0928', '\u091C\u0941\u0932\u093E', '\u0905\u0917', '\u0938\u093F\u0924', '\u0905\u0915\u094D\u091F\u0942', '\u0928\u0935', '\u0926\u093F\u0938'];
+List<String> mon() => lang == 'hi' ? _monHi : _monEn;
 
-void main() => runApp(MaterialApp(
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final p = await SharedPreferences.getInstance();
+  lang = p.getString('lang') ?? 'en';
+  langN.value = lang;
+  runApp(MaterialApp(
     debugShowCheckedModeBanner: false,
     theme: ThemeData(colorSchemeSeed: Colors.indigo, useMaterial3: true),
     darkTheme: ThemeData(colorSchemeSeed: Colors.indigo, brightness: Brightness.dark, useMaterial3: true),
     home: const Home()));
+}
 
 const expCats = ['Food', 'Grocery', 'Travel', 'Shopping', 'Bills', 'EMI', 'Medical', 'Other'];
 const incCats = ['Salary', 'Cashback', 'Refund', 'Other income'];
@@ -130,7 +138,7 @@ String tm(DateTime d) {
   return '$h:${two(d.minute)} ${d.hour < 12 ? 'AM' : 'PM'}';
 }
 
-String dt(DateTime d) => '${d.day} ${mon[d.month - 1]} ${d.year}';
+String dt(DateTime d) => '${d.day} ${mon()[d.month - 1]} ${d.year}';
 String money(double v) {
   final s = v.floor().toString();
   final b = StringBuffer();
@@ -305,8 +313,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     const bold = TextStyle(fontWeight: FontWeight.bold);
     return card(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        const Expanded(child: Text('Accounts', style: bold)),
-        TextButton(onPressed: accountsPage, child: const Text('Manage')),
+        const Expanded(child: Tt('Accounts', style: bold)),
+        TextButton(onPressed: accountsPage, child: const Tt('Manage')),
       ]),
       const SizedBox(height: 8),
       for (final e in b.entries)
@@ -321,9 +329,9 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
               Text(hideBal ? '\u2022\u2022\u2022\u2022' : sm(e.value), style: bold),
             ]))),
       const Divider(),
-      Row(children: [const Expanded(child: Text('Total', style: bold)), Text(hideBal ? '\u2022\u2022\u2022\u2022' : sm(total), style: bold)]),
+      Row(children: [const Expanded(child: Tt('Total', style: bold)), Text(hideBal ? '\u2022\u2022\u2022\u2022' : sm(total), style: bold)]),
       const SizedBox(height: 4),
-      Text('Bank balance SMS ke "Avl Bal" se aata hai', style: sub),
+      Tt('Bank balance SMS ke "Avl Bal" se aata hai', style: sub),
     ]));
   }
 
@@ -336,7 +344,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
               if (!opts.contains(cat)) cat = opts.first;
               return AlertDialog(
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                title: const Text('Type & category'),
+                title: const Tt('Type & category'),
                 content: SingleChildScrollView(
                     child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Wrap(spacing: 8, children: [
@@ -349,12 +357,12 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                       value: cat,
-                      decoration: const InputDecoration(labelText: 'Category'),
-                      items: [for (final c in opts) DropdownMenuItem(value: c, child: Text(c))],
+                      decoration: InputDecoration(labelText: tr('Category')),
+                      items: [for (final c in opts) DropdownMenuItem(value: c, child: Text(tr(c)))],
                       onChanged: (v) => ss(() => cat = v ?? cat)),
                 ])),
                 actions: [
-                  TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                  TextButton(onPressed: () => Navigator.pop(ctx), child: const Tt('Cancel')),
                   FilledButton(
                       onPressed: () {
                         setState(() {
@@ -370,7 +378,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                         rev.value++;
                         Navigator.pop(ctx);
                       },
-                      child: const Text('Save'))
+                      child: const Tt('Save'))
                 ],
               );
             }));
@@ -385,7 +393,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
               title: Text('$c budget'),
               content: TextField(controller: ctl, keyboardType: TextInputType.number, decoration: const InputDecoration(prefixText: rs)),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Tt('Cancel')),
                 FilledButton(
                     onPressed: () {
                       final v = double.tryParse(ctl.text) ?? 0;
@@ -393,7 +401,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                       sp?.setString('cb', jsonEncode(cb));
                       Navigator.pop(ctx);
                     },
-                    child: const Text('Save'))
+                    child: const Tt('Save'))
               ],
             ));
   }
@@ -524,7 +532,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     return Padding(
         padding: const EdgeInsets.only(bottom: 14),
         child: card(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('Upcoming (7 din)', style: TextStyle(fontWeight: FontWeight.bold)),
+          const Tt('Upcoming (7 din)', style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           for (final x in u)
             Padding(
@@ -542,7 +550,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         context: context,
         builder: (ctx) => AlertDialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-              title: Text(title),
+              title: Text(tr(title)),
               content: SingleChildScrollView(
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
                 for (final x in f)
@@ -550,13 +558,13 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                       controller: c[x[0]],
                       keyboardType: x[2] == 'n' || x[2] == 'p' ? TextInputType.number : TextInputType.text,
                       obscureText: x[2] == 'p' || x[2] == 'w',
-                      decoration: InputDecoration(labelText: x[1]))
+                      decoration: InputDecoration(labelText: tr(x[1])))
               ])),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Tt('Cancel')),
                 FilledButton(
                     onPressed: () => Navigator.pop(ctx, {for (final e in c.entries) e.key: e.value.text.trim()}),
-                    child: const Text('Save'))
+                    child: const Tt('Save'))
               ],
             ));
   }
@@ -583,15 +591,15 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
             builder: (_) => ValueListenableBuilder<int>(
                 valueListenable: rev,
                 builder: (ctx, _, __) => Scaffold(
-                      appBar: AppBar(title: Text(title)),
+                      appBar: AppBar(title: Text(tr(title))),
                       floatingActionButton: onAdd == null
                           ? null
-                          : FloatingActionButton.extended(onPressed: onAdd, icon: const Icon(Icons.add), label: const Text('Add')),
+                          : FloatingActionButton.extended(onPressed: onAdd, icon: const Icon(Icons.add), label: const Tt('Add')),
                       body: ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 96), children: body()),
                     ))));
   }
 
-  Widget emptyNote(String s) => Padding(padding: const EdgeInsets.all(24), child: Center(child: Text(s, textAlign: TextAlign.center)));
+  Widget emptyNote(String s) => Padding(padding: const EdgeInsets.all(24), child: Center(child: Text(tr(s), textAlign: TextAlign.center)));
   Widget gap8(Widget w) => Padding(padding: const EdgeInsets.only(bottom: 8), child: w);
 
   List<Widget> recBody() => [
@@ -616,8 +624,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                   }
                 },
                 itemBuilder: (_) => const [
-                      PopupMenuItem(value: 'edit', child: Text('Edit')),
-                      PopupMenuItem(value: 'del', child: Text('Delete'))
+                      PopupMenuItem(value: 'edit', child: Tt('Edit')),
+                      PopupMenuItem(value: 'del', child: Tt('Delete'))
                     ]),
           ]))),
       ];
@@ -651,9 +659,9 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                   }
                 },
                 itemBuilder: (_) => const [
-                      PopupMenuItem(value: 'paid', child: Text('EMI paid (+1)')),
-                      PopupMenuItem(value: 'edit', child: Text('Edit')),
-                      PopupMenuItem(value: 'del', child: Text('Delete'))
+                      PopupMenuItem(value: 'paid', child: Tt('EMI paid (+1)')),
+                      PopupMenuItem(value: 'edit', child: Tt('Edit')),
+                      PopupMenuItem(value: 'del', child: Tt('Delete'))
                     ]),
           ]),
           Text('${money(nv(loans[i], 'emi'))} / month'),
@@ -699,9 +707,9 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                     }
                   },
                   itemBuilder: (_) => const [
-                        PopupMenuItem(value: 'add', child: Text('Paise jodo')),
-                        PopupMenuItem(value: 'edit', child: Text('Edit')),
-                        PopupMenuItem(value: 'del', child: Text('Delete'))
+                        PopupMenuItem(value: 'add', child: Tt('Paise jodo')),
+                        PopupMenuItem(value: 'edit', child: Tt('Edit')),
+                        PopupMenuItem(value: 'del', child: Tt('Delete'))
                       ]),
             ]),
             Text('${money(nv(goals[i], 'saved'))} / ${money(nv(goals[i], 'target'))}'),
@@ -726,8 +734,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         const SizedBox(width: 12),
         Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(t, style: const TextStyle(fontWeight: FontWeight.bold)),
-          Text(s, style: sub),
+          Text(tr(t), style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(tr(s), style: sub),
         ])),
         const Icon(Icons.chevron_right),
       ])));
@@ -739,6 +747,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       moreTile(Icons.repeat, 'Recurring Payments', '${rec.length} payments', () => openPage('Recurring Payments', recBody, () => editItem(rec, null, 'Recurring payment', recF))),
       moreTile(Icons.account_balance, 'EMI / Loans', 'Monthly EMI ${money(monthly)}', () => openPage('EMI / Loans', loanBody, () => editItem(loans, null, 'EMI / Loan', loanF))),
       moreTile(Icons.savings_outlined, 'Savings Goals', '${goals.length} goals', () => openPage('Savings Goals', goalBody, () => editItem(goals, null, 'Savings goal', goalF))),
+      moreTile(Icons.calculate_outlined, 'Calculator', 'Quick calculation \u2022 + \u2212 \u00D7 \u00F7 %', calcPage),
       moreTile(Icons.account_balance_outlined, 'My Accounts', '${accKeys().length} accounts \u2022 link & history', accountsPage),
       moreTile(Icons.insights_outlined, 'Tracking Report', 'SMS / Email / Manual ka summary', () => openPage('Tracking Report', trackBody, null)),
       moreTile(Icons.settings_outlined, 'Settings', 'App lock, backup, export', () => openPage('Settings', settingsBody, null)),
@@ -754,7 +763,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   }
 
   void snack(String s) {
-    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s)));
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr(s))));
   }
 
   @override
@@ -864,27 +873,27 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         context: context,
         builder: (ctx) => AlertDialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-              title: const Text('Restore backup'),
+              title: const Tt('Restore backup'),
               content: SingleChildScrollView(
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Text('Dhyan: maujooda manual data, naam, budget, goals sab replace ho jayenge.', style: sub),
-                TextField(controller: c, maxLines: 5, decoration: const InputDecoration(hintText: 'Backup text yahan paste karo')),
+                Tt('Dhyan: maujooda manual data, naam, budget, goals sab replace ho jayenge.', style: sub),
+                TextField(controller: c, maxLines: 5, decoration: InputDecoration(hintText: tr('Backup text yahan paste karo'))),
                 TextButton.icon(
                     onPressed: () async {
                       final d = await Clipboard.getData('text/plain');
                       c.text = d?.text ?? '';
                     },
                     icon: const Icon(Icons.paste),
-                    label: const Text('Clipboard se paste')),
+                    label: const Tt('Clipboard se paste')),
               ])),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Tt('Cancel')),
                 FilledButton(
                     onPressed: () {
                       Navigator.pop(ctx);
                       restore(c.text.trim());
                     },
-                    child: const Text('Restore'))
+                    child: const Tt('Restore'))
               ],
             ));
   }
@@ -906,8 +915,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   List<Widget> settingsBody() => [
         gap8(card(SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Hide balances'),
-            subtitle: Text('Home par balance aur accounts chhupao', style: sub),
+            title: const Tt('Hide balances'),
+            subtitle: Tt('Home par balance aur accounts chhupao', style: sub),
             value: hideBal,
             onChanged: (v) {
               hideBal = v;
@@ -1051,13 +1060,13 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     Widget kv(String title, Map<String, double> m) {
       final k = m.keys.toList()..sort((a, b) => m[b]!.compareTo(m[a]!));
       return gap8(card(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        Text(tr(title), style: const TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 6),
-        if (k.isEmpty) Text('Koi data nahi', style: sub),
+        if (k.isEmpty) Tt('Koi data nahi', style: sub),
         for (final x in k.take(8))
           Padding(
               padding: const EdgeInsets.symmetric(vertical: 3),
-              child: Row(children: [Expanded(child: Text(x)), Text(money(m[x]!), style: const TextStyle(fontWeight: FontWeight.bold))])),
+              child: Row(children: [Expanded(child: Text(tr(x))), Text(money(m[x]!), style: const TextStyle(fontWeight: FontWeight.bold))])),
       ])));
     }
 
@@ -1081,20 +1090,20 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         Text('${l.length} transactions'),
       ]))),
       gap8(card(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('Source-wise', style: TextStyle(fontWeight: FontWeight.bold)),
+        const Tt('Source-wise', style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 6),
         for (final e in const ['SMS', 'Email', 'Manual'])
           Padding(
               padding: const EdgeInsets.symmetric(vertical: 3),
               child: Row(children: [
-                Expanded(child: Text(e)),
+                Expanded(child: Text(tr(e))),
                 Text('${(bySrc[e] ?? <Tx>[]).length} txns \u2022 Out ${money(spent(bySrc[e] ?? <Tx>[]))} \u2022 In ${money(got(bySrc[e] ?? <Tx>[]))}', style: sub),
               ])),
       ]))),
       kv('Bank-wise kharcha', bank),
       kv('Category-wise kharcha', cat),
       const SizedBox(height: 6),
-      const Text('Email se mile transactions', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+      const Tt('Email se mile transactions', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
       const SizedBox(height: 8),
       if (sp?.getString('eAddr') == null)
         emptyNote('Email tracking off hai.\nSettings me Gmail jodo.')
@@ -1178,7 +1187,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     return [
       Padding(
           padding: const EdgeInsets.only(bottom: 12),
-          child: Text('Account link karne par uske saare SMS/email transactions us bank ke naam se alag dikhte hain. Tap karke history dekho.', style: sub)),
+          child: Tt('Account link karne par uske saare SMS/email transactions us bank ke naam se alag dikhte hain. Tap karke history dekho.', style: sub)),
       if (keys.isEmpty) emptyNote('Abhi koi account nahi mila.\n+ Add dabake bank account link karo'),
       for (final k in keys)
         gap8(card(
@@ -1202,7 +1211,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                   },
                   itemBuilder: (_) => [
                         PopupMenuItem(value: 'edit', child: Text(accs.containsKey(k) ? 'Edit' : 'Link bank')),
-                        if (accs.containsKey(k)) const PopupMenuItem(value: 'rm', child: Text('Remove link'))
+                        if (accs.containsKey(k)) const PopupMenuItem(value: 'rm', child: Tt('Remove link'))
                       ]),
             ]))),
     ];
@@ -1265,7 +1274,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                                           filled: true,
                                           fillColor: cs.surfaceContainerHigh,
                                           prefixIcon: const Icon(Icons.search),
-                                          hintText: 'Search in this account',
+                                          hintText: tr('Search in this account'),
                                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none))),
                                   const SizedBox(height: 8),
                                   chips(const {'all': 'All', 'dr': 'Debit', 'cr': 'Credit'}, f, (v) => ss(() => f = v)),
@@ -1278,6 +1287,19 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                     }))));
   }
 
+  void calcPage() => Navigator.push(
+      context,
+      MaterialPageRoute(
+          builder: (_) => Scaffold(
+              appBar: AppBar(title: const Tt('Calculator')),
+              body: const SafeArea(child: Padding(padding: EdgeInsets.all(16), child: CalcPad())))));
+
+  Future<double?> calcSheet(double? init) => showModalBottomSheet<double>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => Padding(padding: const EdgeInsets.all(16), child: CalcPad(initial: init, onUse: (v) => Navigator.pop(ctx, v))));
+
   List<Tx> _allC = [];
   String _allK = '';
   List<Tx> get all {
@@ -1289,13 +1311,13 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     }
     return _allC;
   }
-  String nm(Tx t) => names[t.id] ?? alias[t.party.toLowerCase()] ?? (t.party == '-' || RegExp(r'^(?:rs\.?|inr|\u20B9)\s*\d|^(?:your bank|beneficiary)', caseSensitive: false).hasMatch(t.party) ? 'Unknown recipient' : t.party);
+  String nm(Tx t) => names[t.id] ?? alias[t.party.toLowerCase()] ?? (t.party == '-' || RegExp(r'^(?:rs\.?|inr|\u20B9)\s*\d|^(?:your bank|beneficiary)', caseSensitive: false).hasMatch(t.party) ? tr('Unknown recipient') : t.party);
 
   String dayLabel(DateTime d) {
     final n = DateTime.now();
     final a = DateTime(d.year, d.month, d.day), b = DateTime(n.year, n.month, n.day);
     final diff = b.difference(a).inDays;
-    return diff == 0 ? 'Today' : diff == 1 ? 'Yesterday' : dt(d);
+    return diff == 0 ? tr('Today') : diff == 1 ? tr('Yesterday') : dt(d);
   }
 
   List<Tx> filtered() {
@@ -1345,7 +1367,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       child: Row(children: [
         Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(t, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
+          Text(tr(t), style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
           if (sub != null) Text(sub, style: TextStyle(color: cs.onSurfaceVariant)),
         ])),
         IconButton(
@@ -1356,7 +1378,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       ]));
 
   Widget stat(String label, String value, Color c) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: sub),
+        Text(tr(label), style: sub),
         const SizedBox(height: 2),
         Text(value, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: c)),
       ]);
@@ -1367,7 +1389,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         for (final e in o.entries)
           Padding(
               padding: const EdgeInsets.only(right: 8),
-              child: ChoiceChip(label: Text(e.value), selected: cur == e.key, onSelected: (_) => on(e.key)))
+              child: ChoiceChip(label: Text(tr(e.value)), selected: cur == e.key, onSelected: (_) => on(e.key)))
       ]));
 
   @override
@@ -1390,10 +1412,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     return Scaffold(
       body: SafeArea(
           child: status.isNotEmpty
-              ? Center(child: Padding(padding: const EdgeInsets.all(24), child: Text(status, textAlign: TextAlign.center)))
+              ? Center(child: Padding(padding: const EdgeInsets.all(24), child: Text(tr(status), textAlign: TextAlign.center)))
               : page()),
       floatingActionButton: tab <= 1
-          ? FloatingActionButton.extended(onPressed: addManual, icon: const Icon(Icons.add), label: const Text('Add'))
+          ? FloatingActionButton.extended(onPressed: addManual, icon: const Icon(Icons.add), label: const Tt('Add'))
           : null,
       bottomNavigationBar: NavigationBar(
           selectedIndex: tab,
@@ -1417,7 +1439,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     final over = sp > budget;
     return card(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        const Expanded(child: Text('Monthly Budget', style: TextStyle(fontWeight: FontWeight.bold))),
+        const Expanded(child: Tt('Monthly Budget', style: TextStyle(fontWeight: FontWeight.bold))),
         IconButton(visualDensity: VisualDensity.compact, icon: const Icon(Icons.edit, size: 20), onPressed: editBudget),
       ]),
       Text('${money(sp)} / ${money(budget)}'),
@@ -1448,7 +1470,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                 const SizedBox(height: 2),
                 Text('${dt(t.d)} \u2022 ${tm(t.d)}', style: sub),
                 Text('${t.bank} \u2022 ${t.method} \u2022 ${t.kind == 'transfer' ? 'Transfer' : t.cat} \u2022 ${t.manual ? 'Manual' : t.src == 'email' ? 'Email' : 'SMS'}', style: sub),
-                if (isDup(t)) const Text('\u26A0 Possible duplicate', style: TextStyle(fontSize: 12, color: Colors.amber)),
+                if (isDup(t)) const Tt('\u26A0 Possible duplicate', style: TextStyle(fontSize: 12, color: Colors.amber)),
               ])),
               const SizedBox(width: 8),
               Text('${t.debit ? '-' : '+'}${money(t.amt)}', style: TextStyle(fontWeight: FontWeight.bold, color: c)),
@@ -1480,12 +1502,12 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     final bal = got(m) - spent(m);
     final rec = all.toList()..sort((a, b) => b.d.compareTo(a.d));
     return ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 96), children: [
-      head('Mera Kharcha', sub: '${n.day} ${mon[n.month - 1]} ${n.year}'),
+      head('Mera Kharcha', sub: '${n.day} ${mon()[n.month - 1]} ${n.year}'),
       Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(color: cs.primaryContainer, borderRadius: BorderRadius.circular(24)),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('${mon[n.month - 1]} balance', style: TextStyle(color: cs.onPrimaryContainer)),
+          Text('${mon()[n.month - 1]} balance', style: TextStyle(color: cs.onPrimaryContainer)),
           const SizedBox(height: 6),
           Text(hideBal ? '\u2022\u2022\u2022\u2022' : '${bal < 0 ? '-' : ''}${money(bal.abs())}',
               style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: cs.onPrimaryContainer)),
@@ -1504,10 +1526,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       upcomingCard(),
       const SizedBox(height: 4),
       Row(children: [
-        const Expanded(child: Text('Recent Transactions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
-        TextButton(onPressed: () => setState(() => tab = 1), child: const Text('See all')),
+        const Expanded(child: Tt('Recent Transactions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
+        TextButton(onPressed: () => setState(() => tab = 1), child: const Tt('See all')),
       ]),
-      if (rec.isEmpty) const Padding(padding: EdgeInsets.all(24), child: Center(child: Text('Abhi koi transaction nahi'))),
+      if (rec.isEmpty) const Padding(padding: EdgeInsets.all(24), child: Center(child: Tt('Abhi koi transaction nahi'))),
       for (final t in rec.take(6)) txCard(t),
     ]);
   }
@@ -1564,7 +1586,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
             filled: true,
             fillColor: cs.surfaceContainerHigh,
             prefixIcon: const Icon(Icons.search),
-            hintText: 'Name, bank, account, amount or UPI',
+            hintText: tr('Name, bank, account, amount or UPI'),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
             suffixIcon: q.isEmpty
                 ? null
@@ -1600,8 +1622,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       Center(
           child: SegmentedButton<String>(
         segments: const [
-          ButtonSegment(value: 'tx', label: Text('Transactions'), icon: Icon(Icons.receipt_long)),
-          ButtonSegment(value: 'ppl', label: Text('People'), icon: Icon(Icons.people))
+          ButtonSegment(value: 'tx', label: Tt('Transactions'), icon: Icon(Icons.receipt_long)),
+          ButtonSegment(value: 'ppl', label: Tt('People'), icon: Icon(Icons.people))
         ],
         selected: {mode},
         onSelectionChanged: (s) => setState(() => mode = s.first),
@@ -1651,7 +1673,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                           TextButton.icon(
                               onPressed: () => rename(g.first, group: true),
                               icon: const Icon(Icons.edit, size: 18),
-                              label: const Text('Rename'))
+                              label: const Tt('Rename'))
                         ]),
                     body: ListView.builder(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -1705,7 +1727,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                     editMeta(t);
                   },
                   icon: const Icon(Icons.category_outlined, size: 18),
-                  label: const Text('Change type / category')),
+                  label: const Tt('Change type / category')),
               if (isDup(t))
                 TextButton.icon(
                     onPressed: () {
@@ -1715,7 +1737,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                       rev.value++;
                     },
                     icon: const Icon(Icons.check, size: 18),
-                    label: const Text('Keep both (duplicate nahi hai)')),
+                    label: const Tt('Keep both (duplicate nahi hai)')),
               if (t.ref.isNotEmpty) Text('Reference: ${t.ref}'),
               const SizedBox(height: 12),
               Row(children: [
@@ -1725,7 +1747,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                       rename(t);
                     },
                     icon: const Icon(Icons.edit),
-                    label: const Text('Rename')),
+                    label: const Tt('Rename')),
                 if (!t.manual) ...[
                   const SizedBox(width: 8),
                   TextButton(
@@ -1735,7 +1757,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                         sp?.setStringList('hidden', hidden.toList());
                         rev.value++;
                       },
-                      child: const Text('Ignore'))
+                      child: const Tt('Ignore'))
                 ],
                 if (t.manual) ...[
                   const SizedBox(width: 8),
@@ -1746,27 +1768,27 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                         saveManual();
                         rev.value++;
                       },
-                      child: const Text('Delete'))
+                      child: const Tt('Delete'))
                 ]
               ]),
             ])));
   }
 
   void rename(Tx t, {bool group = false}) {
-    final c = TextEditingController(text: nm(t) == 'Unknown recipient' ? '' : nm(t));
+    final c = TextEditingController(text: nm(t) == tr('Unknown recipient') ? '' : nm(t));
     var grp = group && t.party != '-';
     showDialog(
         context: context,
         builder: (_) => StatefulBuilder(
             builder: (ctx, ss) => AlertDialog(
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                  title: const Text('Rename transaction'),
+                  title: const Tt('Rename transaction'),
                   content: SingleChildScrollView(
                       child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('Original:', style: sub),
+                    Tt('Original:', style: sub),
                     Text(t.party == '-' ? 'Unknown' : t.party),
                     const SizedBox(height: 14),
-                    Text('New name:', style: sub),
+                    Tt('New name:', style: sub),
                     const SizedBox(height: 6),
                     TextField(
                         controller: c,
@@ -1779,10 +1801,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                           contentPadding: EdgeInsets.zero,
                           value: grp,
                           onChanged: (v) => ss(() => grp = v ?? false),
-                          title: const Text('Is party ke sabhi transactions ka')),
+                          title: const Tt('Is party ke sabhi transactions ka')),
                   ])),
                   actions: [
-                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Tt('Cancel')),
                     FilledButton(
                         onPressed: () {
                           final n = c.text.trim();
@@ -1801,7 +1823,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                           rev.value++;
                           Navigator.pop(ctx);
                         },
-                        child: const Text('Save'))
+                        child: const Tt('Save'))
                   ],
                 )));
   }
@@ -1823,13 +1845,13 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                 padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
                 child: SingleChildScrollView(
                     child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('Add Transaction', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  const Tt('Add Transaction', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 12),
                   SegmentedButton<String>(
                       segments: const [
-                        ButtonSegment(value: 'income', label: Text('Income')),
-                        ButtonSegment(value: 'expense', label: Text('Expense')),
-                        ButtonSegment(value: 'transfer', label: Text('Transfer'))
+                        ButtonSegment(value: 'income', label: Tt('Income')),
+                        ButtonSegment(value: 'expense', label: Tt('Expense')),
+                        ButtonSegment(value: 'transfer', label: Tt('Transfer'))
                       ],
                       selected: {kind},
                       onSelectionChanged: (s) => ss(() {
@@ -1840,23 +1862,31 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                   TextField(
                       controller: a,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Amount', prefixText: rs)),
+                      decoration: InputDecoration(
+                          labelText: 'Amount',
+                          prefixText: rs,
+                          suffixIcon: IconButton(
+                              icon: const Icon(Icons.calculate_outlined),
+                              onPressed: () async {
+                                final v = await calcSheet(double.tryParse(a.text));
+                                if (v != null) a.text = fmtNum(v);
+                              }))),
                   if (kind != 'transfer')
                     DropdownButtonFormField<String>(
                         value: cat,
-                        decoration: const InputDecoration(labelText: 'Category'),
-                        items: [for (final c in catsFor(kind)) DropdownMenuItem(value: c, child: Text(c))],
+                        decoration: InputDecoration(labelText: tr('Category')),
+                        items: [for (final c in catsFor(kind)) DropdownMenuItem(value: c, child: Text(tr(c)))],
                         onChanged: (v) => ss(() => cat = v ?? cat)),
                   DropdownButtonFormField<String>(
                       value: acc,
                       decoration: InputDecoration(labelText: kind == 'transfer' ? 'From account' : 'Account'),
-                      items: [for (final c in names2) DropdownMenuItem(value: c, child: Text(c))],
+                      items: [for (final c in names2) DropdownMenuItem(value: c, child: Text(tr(c)))],
                       onChanged: (v) => ss(() => acc = v ?? acc)),
                   if (kind == 'transfer')
                     DropdownButtonFormField<String>(
                         value: to,
-                        decoration: const InputDecoration(labelText: 'To account'),
-                        items: [for (final c in names2) DropdownMenuItem(value: c, child: Text(c))],
+                        decoration: InputDecoration(labelText: tr('To account')),
+                        items: [for (final c in names2) DropdownMenuItem(value: c, child: Text(tr(c)))],
                         onChanged: (v) => ss(() => to = v ?? to))
                   else
                     TextField(
@@ -1864,8 +1894,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                         decoration: InputDecoration(labelText: kind == 'income' ? 'Received from' : 'Paid to')),
                   DropdownButtonFormField<String>(
                       value: method,
-                      decoration: const InputDecoration(labelText: 'Payment'),
-                      items: [for (final c in const ['UPI', 'Cash', 'Card', 'NEFT/IMPS', 'Other']) DropdownMenuItem(value: c, child: Text(c))],
+                      decoration: InputDecoration(labelText: tr('Payment')),
+                      items: [for (final c in const ['UPI', 'Cash', 'Card', 'NEFT/IMPS', 'Other']) DropdownMenuItem(value: c, child: Text(tr(c)))],
                       onChanged: (v) => ss(() => method = v ?? method)),
                   const SizedBox(height: 16),
                   SizedBox(
@@ -1892,7 +1922,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                             saveManual();
                             Navigator.pop(ctx);
                           },
-                          child: const Text('Save Transaction'))),
+                          child: const Tt('Save Transaction'))),
                 ])))));
   }
 
@@ -1940,7 +1970,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       ])),
       gap,
       card(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('Daily expense (tap a bar)', style: TextStyle(fontWeight: FontWeight.bold)),
+        const Tt('Daily expense (tap a bar)', style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
         SizedBox(
           height: 240,
@@ -1978,7 +2008,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       ])),
       gap,
       card(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('Account-wise spending (tap a slice)', style: TextStyle(fontWeight: FontWeight.bold)),
+        const Tt('Account-wise spending (tap a slice)', style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
         SizedBox(
           height: 220,
@@ -2018,22 +2048,22 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       ])),
       gap,
       card(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('Categories', style: TextStyle(fontWeight: FontWeight.bold)),
+        const Tt('Categories', style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
-        if (ck.isEmpty) const Text('Is period me koi kharcha nahi'),
+        if (ck.isEmpty) const Tt('Is period me koi kharcha nahi'),
         for (final k in ck)
           Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: Row(children: [
-                Expanded(child: Text(k)),
+                Expanded(child: Text(tr(k))),
                 Text('${(ct[k]! * 100 / ctTotal).round()}%  ', style: sub),
                 Text(money(ct[k]!), style: const TextStyle(fontWeight: FontWeight.bold)),
               ])),
       ])),
       gap,
-      const Text('Top spending people / merchants', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+      const Tt('Top spending people / merchants', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
       const SizedBox(height: 8),
-      if (tk.isEmpty) const Text('Is period me koi kharcha nahi'),
+      if (tk.isEmpty) const Tt('Is period me koi kharcha nahi'),
       for (final k in tk.take(5))
         Padding(
             padding: const EdgeInsets.only(bottom: 8),
@@ -2055,7 +2085,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     final safe = (budget - sp - up) / left;
     final mm = all.where((t) => t.d.year == n.year && t.d.month == n.month && t.kind == 'expense').toList();
     return ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 24), children: [
-      head('Budget', sub: '${mon[n.month - 1]} ${n.year}'),
+      head('Budget', sub: '${mon()[n.month - 1]} ${n.year}'),
       budgetCard(sp),
       const SizedBox(height: 14),
       card(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -2068,11 +2098,11 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         stat('Roz kitna kharch kar sakte ho', safe > 0 ? money(safe) : '${rs}0', safe > 0 ? gc : rc),
       ])),
       const SizedBox(height: 18),
-      const Text('Category budgets', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+      const Tt('Category budgets', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
       const SizedBox(height: 8),
       for (final c in expCats) catBudgetCard(c, spent(mm.where((t) => t.cat == c).toList())),
       const SizedBox(height: 14),
-      FilledButton.tonalIcon(onPressed: editBudget, icon: const Icon(Icons.edit), label: const Text('Edit budget')),
+      FilledButton.tonalIcon(onPressed: editBudget, icon: const Icon(Icons.edit), label: const Tt('Edit budget')),
     ]);
   }
 
@@ -2081,7 +2111,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
-              title: const Text('Monthly budget'),
+              title: const Tt('Monthly budget'),
               content: TextField(controller: c, keyboardType: TextInputType.number),
               actions: [
                 TextButton(
@@ -2090,7 +2120,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                       sp?.setDouble('budget', budget);
                       Navigator.pop(ctx);
                     },
-                    child: const Text('Save'))
+                    child: const Tt('Save'))
               ],
             ));
   }
@@ -2116,9 +2146,9 @@ class _LockState extends State<LockScreen> {
                     child: Column(mainAxisSize: MainAxisSize.min, children: [
                       const Icon(Icons.lock, size: 56),
                       const SizedBox(height: 16),
-                      const Text('Mera Kharcha', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                      const Tt('Mera Kharcha', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
-                      const Text('PIN daalo'),
+                      const Tt('PIN daalo'),
                       const SizedBox(height: 16),
                       TextField(
                           controller: c,
@@ -2128,7 +2158,7 @@ class _LockState extends State<LockScreen> {
                           textAlign: TextAlign.center,
                           maxLength: 6,
                           style: const TextStyle(fontSize: 24, letterSpacing: 8),
-                          decoration: InputDecoration(counterText: '', errorText: bad ? 'Galat PIN' : null),
+                          decoration: InputDecoration(counterText: '', errorText: bad ? tr('Galat PIN') : null),
                           onChanged: (v) {
                             if (v.length >= 4 && widget.check(v)) {
                               Navigator.pop(context);
@@ -2140,5 +2170,151 @@ class _LockState extends State<LockScreen> {
                             }
                           }),
                     ])))));
+  }
+}
+
+const _cops = '+-\u00D7\u00F7';
+
+String fmtNum(double v) =>
+    v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), '');
+
+double? calcEval(String raw) {
+  var e = raw;
+  while (e.isNotEmpty && _cops.contains(e[e.length - 1])) {
+    e = e.substring(0, e.length - 1);
+  }
+  if (e.isEmpty) return null;
+  final neg = e.startsWith('-');
+  if (neg) e = e.substring(1);
+  final nums = <double>[];
+  final pct = <bool>[];
+  final ops = <String>[];
+  for (final x in RegExp('(\\d+\\.?\\d*|\\.\\d+)(%?)|[+\\-\u00D7\u00F7]').allMatches(e)) {
+    final n = x.group(1);
+    if (n == null) {
+      ops.add(x.group(0)!);
+    } else {
+      nums.add(double.tryParse(n.endsWith('.') ? '${n}0' : n) ?? 0);
+      pct.add(x.group(2) == '%');
+    }
+  }
+  if (nums.isEmpty || nums.length != ops.length + 1) return null;
+  if (neg) nums[0] = -nums[0];
+  double v(int k) => pct[k] ? nums[k] / 100 : nums[k];
+  double? total;
+  var op = '+';
+  var i = 0;
+  while (i < nums.length) {
+    var j = i;
+    var val = v(i);
+    var single = true;
+    while (j < ops.length && (ops[j] == '\u00D7' || ops[j] == '\u00F7')) {
+      single = false;
+      j++;
+      if (ops[j - 1] == '\u00D7') {
+        val *= v(j);
+      } else {
+        if (v(j) == 0) return null;
+        val /= v(j);
+      }
+    }
+    if (single && pct[i] && total != null) val = total * nums[i] / 100;
+    total = total == null ? val : (op == '+' ? total + val : total - val);
+    if (j < ops.length) op = ops[j];
+    i = j + 1;
+  }
+  return total;
+}
+
+class CalcPad extends StatefulWidget {
+  final void Function(double)? onUse;
+  final double? initial;
+  const CalcPad({super.key, this.onUse, this.initial});
+  @override
+  State<CalcPad> createState() => _CalcState();
+}
+
+class _CalcState extends State<CalcPad> {
+  String e = '';
+
+  @override
+  void initState() {
+    super.initState();
+    final i = widget.initial;
+    if (i != null && i > 0) e = fmtNum(i);
+  }
+
+  void press(String k) {
+    setState(() {
+      if (k == 'C') {
+        e = '';
+      } else if (k == '\u232B') {
+        if (e.isNotEmpty) e = e.substring(0, e.length - 1);
+      } else if (k == '=') {
+        final r = calcEval(e);
+        if (r != null) e = fmtNum(r);
+      } else if (_cops.contains(k)) {
+        if (e.isEmpty) {
+          if (k == '-') e = '-';
+        } else if (e == '-') {
+          return;
+        } else if (_cops.contains(e[e.length - 1])) {
+          e = e.substring(0, e.length - 1) + k;
+        } else {
+          e += k;
+        }
+      } else if (k == '%') {
+        if (RegExp(r'\d$').hasMatch(e)) e += '%';
+      } else if (k == '.') {
+        final last = e.split(RegExp('[+\\-\u00D7\u00F7]')).last;
+        if (!last.contains('.') && !last.endsWith('%')) e += last.isEmpty ? '0.' : '.';
+      } else if (!e.endsWith('%')) {
+        e += k;
+      }
+    });
+  }
+
+  Widget key(String label, {String? v, bool op = false}) => Expanded(
+      child: Padding(
+          padding: const EdgeInsets.all(3),
+          child: SizedBox(
+              height: 58,
+              child: op
+                  ? FilledButton(onPressed: () => press(v ?? label), child: Text(label, style: const TextStyle(fontSize: 22)))
+                  : FilledButton.tonal(onPressed: () => press(v ?? label), child: Text(label, style: const TextStyle(fontSize: 22))))));
+
+  @override
+  Widget build(BuildContext context) {
+    final r = calcEval(e);
+    final hasOp = e.isNotEmpty && RegExp('[+\\-\u00D7\u00F7%]').hasMatch(e.substring(e.startsWith('-') ? 1 : 0));
+    return SingleChildScrollView(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+      Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHigh, borderRadius: BorderRadius.circular(20)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+            SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                reverse: true,
+                child: Text(e.isEmpty ? '0' : e, style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold))),
+            const SizedBox(height: 4),
+            Text(hasOp && r != null ? '= ${fmtNum(r)}' : '', style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+          ])),
+      const SizedBox(height: 10),
+      Row(children: [key('C'), key('\u232B'), key('%'), key('\u00F7', op: true)]),
+      Row(children: [key('7'), key('8'), key('9'), key('\u00D7', op: true)]),
+      Row(children: [key('4'), key('5'), key('6'), key('\u2212', v: '-', op: true)]),
+      Row(children: [key('1'), key('2'), key('3'), key('+', op: true)]),
+      Row(children: [key('0'), key('00'), key('.'), key('=', op: true)]),
+      if (widget.onUse != null) ...[
+        const SizedBox(height: 8),
+        SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+                onPressed: r == null ? null : () => widget.onUse!(r),
+                child: Text(r == null ? 'Use amount' : 'Use amount  ${fmtNum(r)}'))),
+      ],
+    ]));
   }
 }
