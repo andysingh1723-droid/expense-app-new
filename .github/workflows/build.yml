@@ -12,10 +12,10 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
-      - uses: actions/cache@v4
-        with:
-          path: ~/.android/debug.keystore
-          key: debug-keystore-v1
+      - name: Fixed signing key (update install ho sake, data na ude)
+        run: |
+          mkdir -p ~/.android
+          echo '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' | base64 -d > ~/.android/debug.keystore
       - run: flutter create --org com.my --project-name expense_tracker .
       - run: |
           cp main.dart lib/main.dart
@@ -23,9 +23,7 @@ jobs:
           echo "kotlin.jvm.target.validation.mode=ignore" >> android/gradle.properties
           sed -i 's|<application|<uses-permission android:name="android.permission.READ_SMS"/><uses-permission android:name="android.permission.RECEIVE_SMS"/><uses-permission android:name="android.permission.INTERNET"/><application|' android/app/src/main/AndroidManifest.xml
       - run: flutter pub get
-      - run: flutter analyze --no-fatal-infos
-        continue-on-error: true
-      - run: flutter build apk --release
+      - run: flutter build apk --release --build-number=$(( 100 + ${{ github.run_number }} ))
       - uses: actions/upload-artifact@v4
         with:
           name: expense-apk
