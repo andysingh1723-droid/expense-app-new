@@ -2742,7 +2742,9 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         child: Container(
             decoration: BoxDecoration(color: cs.surface, border: Border(top: BorderSide(color: cs.outlineVariant))),
             padding: const EdgeInsets.fromLTRB(6, 8, 6, 8),
-            child: Row(children: [
+            child: SizedBox(
+                height: 48,
+                child: Row(children: [
               for (var i = 0; i < items.length; i++)
                 Expanded(
                     flex: i == 1 ? 14 : 10,
@@ -2760,7 +2762,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                                             fontSize: 14,
                                             fontWeight: tab == i ? FontWeight.w800 : FontWeight.w500,
                                             color: tab == i ? cs.onPrimary : cs.onSurfaceVariant)))))))
-            ])));
+            ]))));
   }
 
   Widget smsGuide() => ListView(padding: const EdgeInsets.all(24), children: [
