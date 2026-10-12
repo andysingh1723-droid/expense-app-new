@@ -56,6 +56,18 @@ jobs:
               }
           }
           KOT
+      - name: Phase 15 setup (notifications)
+        run: |
+          flutter pub add flutter_local_notifications:^17.2.4 timezone:^0.9.4
+          sed -i 's|<application|<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/><uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/><uses-permission android:name="android.permission.VIBRATE"/><application|' android/app/src/main/AndroidManifest.xml
+          sed -i 's|</application>|<receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" /><receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"><intent-filter><action android:name="android.intent.action.BOOT_COMPLETED"/><action android:name="android.intent.action.MY_PACKAGE_REPLACED"/></intent-filter></receiver></application>|' android/app/src/main/AndroidManifest.xml
+          if [ -f android/app/build.gradle.kts ]; then
+            sed -i 's/compileOptions {/compileOptions {\n        isCoreLibraryDesugaringEnabled = true/' android/app/build.gradle.kts
+            printf '\ndependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")\n}\n' >> android/app/build.gradle.kts
+          else
+            sed -i 's/compileOptions {/compileOptions {\n        coreLibraryDesugaringEnabled true/' android/app/build.gradle
+            printf '\ndependencies {\n    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"\n}\n' >> android/app/build.gradle
+          fi
       - run: flutter pub get
       - run: flutter build apk --release --build-number=$(( 100 + ${{ github.run_number }} ))
       - uses: actions/upload-artifact@v4
